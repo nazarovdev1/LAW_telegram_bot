@@ -1,0 +1,22 @@
+{
+  "name": "anonymous-report-bot",
+  "version": "1.0.0",
+  "description": "Anonymous reporting bot for Telegram",
+  "main": "index.mjs",
+  "type": "module",
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "date-fns": "^4.1.0",
+    "dotenv": "^17.2.3",
+    "telegraf": "^4.16.3"
+  },
+  "keywords": [
+    "telegram",
+    "bot",
+    "anonymous"
+  ],
+  "author": "Anonymous Reporter",
+  "license": "MIT"
+}
