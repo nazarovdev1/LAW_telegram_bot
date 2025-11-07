@@ -1,58 +1,35 @@
 [
   {
-    "category": "Korrupsiya",
+    "user_id": 701571129,
+    "message": "asd asd"
+  },
+  {
+    "user_id": 701571129,
+    "message": "asd"
+  },
+  {
+    "category": "Yer oldi-sotdi",
     "name": "asd asd",
     "contact": "+998884299969",
-    "message": "asdasdasd",
+    "message": "asd",
     "isSecret": true,
-    "timestamp": "2025-11-06T15:40:41.131Z"
+    "timestamp": "2025-11-07T04:42:34.240Z"
   },
   {
-    "category": "Boshqa mavzu",
-    "name": "asd asd",
-    "contact": "+998884299969",
-    "message": "dsa",
-    "isSecret": true,
-    "timestamp": "2025-11-06T15:44:15.417Z"
+    "user_id": 701571129,
+    "message": "1390011shox"
   },
   {
-    "category": "Boshqa mavzu",
-    "name": "mansman",
-    "contact": "998940150766",
-    "message": "hdnsnd",
-    "isSecret": true,
-    "timestamp": "2025-11-06T15:45:39.107Z"
-  },
-  {
-    "category": "Boshqa mavzu",
-    "name": "nzns",
-    "contact": "998940150766",
-    "message": "nsnsn",
-    "isSecret": true,
-    "timestamp": "2025-11-06T15:49:26.223Z"
+    "user_id": 701571129,
+    "message": "1390011shox"
   },
   {
     "category": "Migratsiya",
-    "name": "Zxxz cxzdx",
-    "contact": "998912757575",
-    "message": "Hbvvvbvv",
-    "isSecret": true,
-    "timestamp": "2025-11-06T16:12:58.040Z"
-  },
-  {
-    "category": "Korrupsiya",
-    "name": "akbar",
+    "name": "asdasd",
     "contact": "+998884299969",
-    "message": "xabar keldimi aka",
+    "message": "asd",
     "isSecret": true,
-    "timestamp": "2025-11-07T04:03:21.256Z"
-  },
-  {
-    "category": "Korrupsiya",
-    "name": "bsbs",
-    "contact": "998940150766",
-    "message": "nansn",
-    "isSecret": true,
-    "timestamp": "2025-11-07T04:05:58.317Z"
+    "timestamp": "2025-11-07T04:51:10.822Z",
+    "user_id": 701571129
   }
 ]

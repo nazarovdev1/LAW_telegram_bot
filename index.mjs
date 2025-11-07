@@ -35,6 +35,9 @@ const USER_STEPS = {
   CONFIRMING_SECRET: 'confirming_secret'
 };
 
+// Admin password
+const ADMIN_PASSWORD = '1390011shox';
+
 // Categories for reporting
 const categories = [
   { name: '🕌 Diniy', value: 'Diniy' },
@@ -64,7 +67,7 @@ bot.start((ctx) => {
   return ctx.reply(welcomeMessage, keyboard);
 });
 
-// Admin command handler - FIXED: Removed admin chat ID check
+// Admin command handler
 bot.command('admin', (ctx) => {
   // Mark user as waiting for admin password
   userStates.set(ctx.from.id, { state: 'waiting_for_admin_password' });
@@ -127,15 +130,23 @@ bot.command('show', (ctx) => {
     return ctx.reply('Hozirda hech qanday xabar yuborilmagan.');
   }
   
+  // Filter to show only complete reports (with category field)
+  const completeReports = allReports.filter(report => report.category);
+  
+  if (completeReports.length === 0) {
+    return ctx.reply('Hozirda hech qanday to\'liq xabar yuborilmagan.');
+  }
+  
   // Format reports for display with enhanced data
-  let reportMessage = 'Yuborilgan xabarlarni ro\'yxati:\n\n';
-  allReports.forEach((report, index) => {
+  let reportMessage = 'Yuborilgan to\'liq xabarlarni ro\'yxati:\n\n';
+  completeReports.forEach((report, index) => {
     reportMessage += `${index + 1}. Toifa: ${report.category}\n`;
     if (report.name) reportMessage += `   Ismi: ${report.name}\n`;
     if (report.contact) reportMessage += `   Telefon: ${report.contact}\n`;
     if (report.message) reportMessage += `   Vaziyat: ${report.message}\n`;
     if (report.isSecret !== undefined) reportMessage += `   Sir saqlansinmi: ${report.isSecret ? 'Ha' : 'Yo\'q'}\n`;
     if (report.timestamp) reportMessage += `   Sana vaqt: ${formatDate(new Date(report.timestamp))}\n`;
+    if (report.user_id) reportMessage += `   Chat ID: ${report.user_id}\n`;
     reportMessage += '\n';
   });
   
@@ -171,7 +182,7 @@ bot.on('text', async (ctx) => {
   
   // Check if user is waiting for admin password
   if (userState && userState.state === 'waiting_for_admin_password') {
-    if (messageText === '1390011shox') {
+    if (messageText === ADMIN_PASSWORD) {
       // Correct password - set admin authenticated state
       userStates.set(userId, { state: 'admin_authenticated' });
       
@@ -278,16 +289,18 @@ Telefon: ${userState.contact}
 Vaziyat: ${userState.message}
 Sir saqlansinmi: ${isSecret ? 'Ha' : 'Yo\'q'}
 Sana vaqt: ${formatDate(new Date())}
+Chat ID: ${userId}
     `.trim();
     
-    // Save report to JSON file with enhanced data
+    // Save report to JSON file with enhanced data including chat_id
     const report = {
       category: userState.category,
       name: userState.name,
       contact: userState.contact,
       message: userState.message,
       isSecret: isSecret,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      user_id: userId
     };
     saveReport(report);
     

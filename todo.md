@@ -1,48 +1,19 @@
-# TODO LIST - Enhanced User Registration & Message Flow
+# TODO - Telegram Bot Xabarlarni Saqlash
 
-- [x] Analyze current codebase structure
-- [x] Examine existing bot configuration and setup
-- [x] Understand current user management system
-- [x] Modify bot to support broadcast functionality for "Korrupsiya" category
-- [x] Add configuration for broadcast user IDs (Users 2 and 3)
-- [x] Implement message broadcasting when Korrupsiya is selected
-- [x] Test the functionality (starting the bot)
-- [x] Identify the issue: Messages are being broadcast to all users
-- [x] Remove BROADCAST_CHAT_IDS configuration
-- [x] Remove broadcast parsing functionality from code
-- [x] Remove broadcastMessage function
-- [x] Remove broadcast call from message handler
-- [x] Ensure each user only sees their own messages
-- [x] Fix bot conflict error (Telegram 409: Conflict)
-- [x] Stop existing bot instances using PowerShell
-- [x] Restart bot properly (bot was running successfully)
-- [x] Enhanced user registration flow requirements defined
-- [x] Add user steps constants
-- [x] Implement name/surname collection step
-- [x] Add contact sharing functionality
-- [x] Add secret message confirmation step
-- [x] Update data structure for new fields
-- [x] Add contact handler for phone number sharing
-- [x] Add secret confirmation handler
-- [ ] Test the new flow
-- [ ] Verify results
+- [x] Foydalanuvchi xabarlarini saqlash funksiyasini tahlil qilish
+- [x] saveUserMessage funksiyasini yaratish (faqat user_id va message)
+- [x] Bot har bir xabarda saveUserMessage ni chaqirishi
+- [x] reports.json faylida ma'lumotlarni to'g'ri saqlash
+- [x] Eski ma'lumotlarni saqlab qolish va yangilarini qo'shish
+- [x] Har bir foydalanuvchi matn xabari uchun saveUserMessage chaqirish
+- [x] Bot to'g'ri ishlashini ta'minlash
 
-## New User Flow Implementation:
-✅ 1. User /start → selects category (e.g., "Korrupsiya")
-✅ 2. Bot asks: "Ismi familyangizni kiriting" (Enter your name and surname)
-✅ 3. Bot asks: "Telefon raqamingizni kiriting yoki pastdan tugmasini bosing:" + "📞 Kontaktni ulashish" button
-✅ 4. User shares contact → automatically sent to bot
-✅ 5. User writes their message
-✅ 6. Bot asks: "Xabaringiz sir saqlansinmi?" with yes/no buttons
-✅ 7. User selects → data sent to reports.json with secret flag
+## Yaratilgan Funksionallik:
 
-## Enhanced Data Structure:
-- category: string
-- name: string
-- contact: string
-- message: string
-- isSecret: boolean
-- timestamp: ISO string
+1. **saveUserMessage funksiyasi** - har bir foydalanuvchi xabarini user_id va message ko'rinishida saqlaydi
+2. **Har bir matn xabari uchun** - foydalanuvchi har qanday matn yuborganda avtomatik saqlanadi
+3. **reports.json faylida** - ma'lumotlar array ko'rinishida saqlanadi
+4. **Eski ma'lumotlar** - o'chirilmasdan, yangilari qo'shiladi
 
-## Current Status:
-🔄 Ready to test the new enhanced user registration and message flow
+## Implementatsiya Joyi:
+Har bir matn xabari uchun `bot.on('text')` handler ichida `saveUserMessage(userId, messageText)` chaqiriladi.
