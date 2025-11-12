@@ -7,7 +7,7 @@ on:
   push:
   workflow_dispatch:
   schedule:
-    - cron: "*/30 * * * *"  # Har 30 daqiqada ishga tushadi
+    - cron: "*/5 * * * *"  # Har 5 daqiqada ishga tushadi
 
 jobs:
   build:
