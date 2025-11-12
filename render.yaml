@@ -1,0 +1,39 @@
+services:
+  # Background Worker (Recommended for bots)
+  - type: worker
+    name: telegram-bot-worker
+    env: node
+    region: frankfurt  # Choose closest region
+    plan: free  # or starter/standard for better resources
+    buildCommand: npm install
+    startCommand: node index.mjs
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: ADMIN_CHAT_ID
+        sync: false
+      - key: NODE_ENV
+        value: production
+
+  # Alternative: Web Service (if you need HTTP endpoints)
+  # - type: web
+  #   name: telegram-bot-web
+  #   env: node
+  #   region: frankfurt
+  #   plan: free
+  #   buildCommand: npm install
+  #   startCommand: node index.mjs
+  #   healthCheckPath: /health
+  #   envVars:
+  #     - key: BOT_TOKEN
+  #       sync: false
+  #     - key: ADMIN_CHAT_ID
+  #       sync: false
+  #     - key: PORT
+  #       value: 10000
+  #     - key: ENABLE_SELF_PING
+  #       value: true
+  #     - key: APP_URL
+  #       value: https://your-app-name.onrender.com
+  #     - key: NODE_ENV
+  #       value: production

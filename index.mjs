@@ -5,6 +5,8 @@ import { uz } from 'date-fns/locale';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import express from 'express';
+import http from 'http';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -377,11 +379,69 @@ const clearReports = () => {
   }
 };
 
+// Create Express app for health checks and keeping the bot alive
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// Health check endpoint
+app.get('/', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Telegram bot is running',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Health check endpoint for monitoring services
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    bot: 'active',
+    uptime: process.uptime()
+  });
+});
+
+// Ping endpoint for keep-alive services
+app.get('/ping', (req, res) => {
+  res.status(200).send('pong');
+});
+
+// Start Express server
+const server = http.createServer(app);
+server.listen(PORT, () => {
+  console.log(`Health check server running on port ${PORT}`);
+});
+
 // Start the bot
-bot.launch();
+bot.launch({
+  dropPendingUpdates: true // Ignore old updates on restart
+});
 
 console.log('Anonymous reporting bot is running...');
 
+// Self-ping to keep alive (optional, for platforms with sleep mode)
+const SELF_PING_INTERVAL = 14 * 60 * 1000; // 14 minutes
+if (process.env.ENABLE_SELF_PING === 'true') {
+  setInterval(() => {
+    const url = process.env.APP_URL || `http://localhost:${PORT}`;
+    http.get(`${url}/health`, (res) => {
+      console.log(`Self-ping: ${res.statusCode}`);
+    }).on('error', (err) => {
+      console.error('Self-ping error:', err.message);
+    });
+  }, SELF_PING_INTERVAL);
+  console.log('Self-ping enabled');
+}
+
 // Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} received, closing gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed');
+    bot.stop(signal);
+  });
+};
+
+process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));

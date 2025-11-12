@@ -1,4 +1,7 @@
-name: Run Telegram Bot
+# This file is deprecated. Please use .github/workflows/deploy-bot.yml instead
+# The new workflow file has better configuration and error handling
+
+name: Run Telegram Bot (DEPRECATED)
 
 on:
   push:
@@ -23,4 +26,4 @@ jobs:
         run: npm install
 
       - name: Run bot
-        run: node index.js
+        run: node index.mjs
