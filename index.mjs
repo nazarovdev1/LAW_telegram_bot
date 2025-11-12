@@ -5,8 +5,6 @@ import { uz } from 'date-fns/locale';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import express from 'express';
-import http from 'http';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -34,7 +32,9 @@ const USER_STEPS = {
   ENTERING_NAME: 'entering_name',
   ENTERING_CONTACT: 'entering_contact',
   ENTERING_MESSAGE: 'entering_message',
-  CONFIRMING_SECRET: 'confirming_secret'
+  CONFIRMING_SECRET: 'confirming_secret',
+  ADMIN_SELECTING_USER: 'admin_selecting_user',
+  ADMIN_WRITING_MESSAGE: 'admin_writing_message'
 };
 
 // Admin password
@@ -171,6 +171,93 @@ bot.command('clear', (ctx) => {
   return ctx.reply('Barcha xabarlarni tozalandi.');
 });
 
+// Admin /send command handler
+bot.command('send', (ctx) => {
+  const userId = ctx.from.id;
+  const userState = userStates.get(userId);
+  
+  // Check if user is authenticated as admin
+  if (!userState || userState.state !== 'admin_authenticated') {
+    return ctx.reply('Siz admin emassiz.');
+  }
+  
+  // Load all reports from JSON file
+  const allReports = loadReports();
+  
+  if (allReports.length === 0) {
+    return ctx.reply('Hozirda hech qanday foydalanuvchi topilmadi.');
+  }
+  
+  // Get unique user IDs with their latest complete data
+  const userMap = new Map();
+  
+  // Process all reports to get the most recent data for each user
+  allReports.forEach(report => {
+    if (report.user_id) {
+      const existingUser = userMap.get(report.user_id);
+      
+      // If user not seen yet, or current report has more complete data, update
+      if (!existingUser) {
+        userMap.set(report.user_id, {
+          user_id: report.user_id,
+          name: report.name || 'Noma\'lum',
+          contact: report.contact || 'Noma\'lum',
+          lastCategory: report.category || 'Noma\'lum',
+          timestamp: report.timestamp
+        });
+      } else {
+        // Update with newer data if it's more complete
+        if (report.name && report.name !== 'Noma\'lum') {
+          existingUser.name = report.name;
+        }
+        if (report.contact && report.contact !== 'Noma\'lum') {
+          existingUser.contact = report.contact;
+        }
+        if (report.category && report.category !== 'Noma\'lum') {
+          existingUser.lastCategory = report.category;
+        }
+        // Keep the most recent timestamp
+        if (report.timestamp && (!existingUser.timestamp || report.timestamp > existingUser.timestamp)) {
+          existingUser.timestamp = report.timestamp;
+        }
+      }
+    }
+  });
+  
+  const uniqueUsers = Array.from(userMap.values());
+  
+  // Sort by most recent activity
+  uniqueUsers.sort((a, b) => {
+    if (!a.timestamp) return 1;
+    if (!b.timestamp) return -1;
+    return new Date(b.timestamp) - new Date(a.timestamp);
+  });
+  
+  if (uniqueUsers.length === 0) {
+    return ctx.reply('Hech qanday foydalanuvchi topilmadi.');
+  }
+  
+  // Format user list
+  let userListMessage = 'Foydalanuvchilar ro\'yxati:\n\n';
+  uniqueUsers.forEach((user, index) => {
+    userListMessage += `${index + 1}. ${user.name}\n`;
+    userListMessage += `   Chat ID: ${user.user_id}\n`;
+    userListMessage += `   Telefon: ${user.contact}\n`;
+    userListMessage += `   So\'nggi toifa: ${user.lastCategory}\n\n`;
+  });
+  
+  userListMessage += 'Foydalanuvchi raqamini kiriting (masalan: 1, 2, 3):';
+  
+  // Store user list in admin state
+  userStates.set(userId, {
+    state: 'admin_authenticated',
+    step: USER_STEPS.ADMIN_SELECTING_USER,
+    userList: uniqueUsers
+  });
+  
+  return ctx.reply(userListMessage);
+});
+
 // Handle text messages (consolidated handler)
 bot.on('text', async (ctx) => {
   const userId = ctx.from.id;
@@ -194,6 +281,7 @@ Admin menyusi:
 1. /stats - Statistika
 2. /clear - Barcha foydalanuvchilarni tozalash
 3. /show - Foydalanuvchilar yuborgan xabarlarni ko'rish
+4. /send - Foydalanuvchiga xabar yuborish
       `;
       return ctx.reply(adminMenu);
     } else {
@@ -205,6 +293,45 @@ Admin menyusi:
   // Handle enhanced user registration flow
   if (userState && userState.step) {
     switch (userState.step) {
+      case USER_STEPS.ADMIN_SELECTING_USER:
+        // Admin is selecting a user by number
+        const userNumber = parseInt(messageText);
+        
+        if (isNaN(userNumber) || userNumber < 1 || userNumber > userState.userList.length) {
+          return ctx.reply(`Noto'g'ri raqam. Iltimos, 1 dan ${userState.userList.length} gacha raqam kiriting.`);
+        }
+        
+        // Store selected user
+        const selectedUser = userState.userList[userNumber - 1];
+        userState.selectedUser = selectedUser;
+        userState.step = USER_STEPS.ADMIN_WRITING_MESSAGE;
+        userStates.set(userId, userState);
+        
+        return ctx.reply(`Tanlangan foydalanuvchi: ${selectedUser.name}\n\nYubormoqchi bo'lgan xabaringizni yozing:`);
+      
+      case USER_STEPS.ADMIN_WRITING_MESSAGE:
+        // Admin is writing the message to send
+        const targetUserId = userState.selectedUser.user_id;
+        const messageToSend = messageText;
+        
+        try {
+          // Send message to selected user
+          await bot.telegram.sendMessage(targetUserId, messageToSend);
+          
+          // Confirm to admin
+          await ctx.reply(`✅ Xabar muvaffaqiyatli yuborildi!\n\nFoydalanuvchi: ${userState.selectedUser.name}\nChat ID: ${targetUserId}`);
+          
+          // Reset admin state
+          userStates.set(userId, { state: 'admin_authenticated' });
+        } catch (error) {
+          console.error('Error sending message to user:', error);
+          await ctx.reply(`❌ Xabarni yuborishda xatolik yuz berdi.\n\nXatolik: ${error.message}`);
+          
+          // Reset admin state
+          userStates.set(userId, { state: 'admin_authenticated' });
+        }
+        return;
+      
       case USER_STEPS.ENTERING_NAME:
         // Store name and move to contact step
         userState.name = messageText;
@@ -379,69 +506,11 @@ const clearReports = () => {
   }
 };
 
-// Create Express app for health checks and keeping the bot alive
-const app = express();
-const PORT = process.env.PORT || 3000;
-
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.status(200).json({
-    status: 'ok',
-    message: 'Telegram bot is running',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString()
-  });
-});
-
-// Health check endpoint for monitoring services
-app.get('/health', (req, res) => {
-  res.status(200).json({
-    status: 'healthy',
-    bot: 'active',
-    uptime: process.uptime()
-  });
-});
-
-// Ping endpoint for keep-alive services
-app.get('/ping', (req, res) => {
-  res.status(200).send('pong');
-});
-
-// Start Express server
-const server = http.createServer(app);
-server.listen(PORT, () => {
-  console.log(`Health check server running on port ${PORT}`);
-});
-
 // Start the bot
-bot.launch({
-  dropPendingUpdates: true // Ignore old updates on restart
-});
+bot.launch();
 
 console.log('Anonymous reporting bot is running...');
 
-// Self-ping to keep alive (optional, for platforms with sleep mode)
-const SELF_PING_INTERVAL = 14 * 60 * 1000; // 14 minutes
-if (process.env.ENABLE_SELF_PING === 'true') {
-  setInterval(() => {
-    const url = process.env.APP_URL || `http://localhost:${PORT}`;
-    http.get(`${url}/health`, (res) => {
-      console.log(`Self-ping: ${res.statusCode}`);
-    }).on('error', (err) => {
-      console.error('Self-ping error:', err.message);
-    });
-  }, SELF_PING_INTERVAL);
-  console.log('Self-ping enabled');
-}
-
 // Enable graceful stop
-const gracefulShutdown = (signal) => {
-  console.log(`${signal} received, closing gracefully...`);
-  server.close(() => {
-    console.log('HTTP server closed');
-    bot.stop(signal);
-  });
-};
-
-process.once('SIGINT', () => gracefulShutdown('SIGINT'));
-process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.once('SIGINT', () => bot.stop('SIGINT'));
+process.once('SIGTERM', () => bot.stop('SIGTERM'));
