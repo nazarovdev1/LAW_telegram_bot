@@ -5,6 +5,7 @@ import { uz } from 'date-fns/locale';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import http from 'http';
 
 // Get current directory for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -506,11 +507,68 @@ const clearReports = () => {
   }
 };
 
-// Start the bot
-bot.launch();
+// Create HTTP server for Render Web Service port binding
+const PORT = process.env.PORT || 10000;
+const server = http.createServer((req, res) => {
+  if (req.url === '/' || req.url === '/health') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      status: 'ok',
+      message: 'Telegram bot is running',
+      uptime: process.uptime(),
+      timestamp: new Date().toISOString()
+    }));
+  } else if (req.url === '/ping') {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.end('pong');
+  } else {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('Not found');
+  }
+});
 
-console.log('Anonymous reporting bot is running...');
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Health check server running on port ${PORT}`);
+});
+
+// Start the bot
+bot.launch({
+  dropPendingUpdates: true,
+  allowedUpdates: []
+}).then(() => {
+  console.log('Anonymous reporting bot is running...');
+}).catch((err) => {
+  console.error('Failed to launch bot:', err);
+  if (err.description && err.description.includes('Conflict')) {
+    console.error('\n⚠️  CRITICAL ERROR: Another bot instance is already running!');
+    console.error('Please stop all other instances before deploying.');
+    console.error('Check: Local machine, GitHub Actions, other hosting platforms\n');
+  }
+  process.exit(1);
+});
 
 // Enable graceful stop
-process.once('SIGINT', () => bot.stop('SIGINT'));
-process.once('SIGTERM', () => bot.stop('SIGTERM'));
+const gracefulShutdown = (signal) => {
+  console.log(`${signal} received. Shutting down gracefully...`);
+  server.close(() => {
+    console.log('HTTP server closed');
+    bot.stop(signal).then(() => {
+      console.log('Bot stopped successfully');
+      process.exit(0);
+    });
+  });
+};
+
+process.once('SIGINT', () => gracefulShutdown('SIGINT'));
+process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.once('SIGBREAK', () => gracefulShutdown('SIGBREAK'));
+
+// Handle unexpected errors
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  gracefulShutdown('UNCAUGHT_EXCEPTION');
+});
