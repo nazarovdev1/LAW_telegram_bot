@@ -240,7 +240,7 @@ Admin menyusi:
           reply_markup: {
             inline_keyboard: [
               [
-                { text: "✅ Ha, sir qilib saqlansin", callback_data: 'secret_yes' },
+                { text: "✅ Ha, sir saqlansin", callback_data: 'secret_yes' },
                 { text: "❌ Yo'q, oshkor qilinsin", callback_data: 'secret_no' }
               ]
             ]
