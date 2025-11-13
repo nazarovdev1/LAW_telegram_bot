@@ -145,6 +145,7 @@ bot.command('show', (ctx) => {
   completeReports.forEach((report, index) => {
     reportMessage += `${index + 1}. Toifa: ${report.category}\n`;
     if (report.name) reportMessage += `   Ismi: ${report.name}\n`;
+    if (report.username) reportMessage += `   Username: @${report.username}\n`;
     if (report.contact) reportMessage += `   Telefon: ${report.contact}\n`;
     if (report.message) reportMessage += `   Vaziyat: ${report.message}\n`;
     if (report.isSecret !== undefined) reportMessage += `   Sir saqlansinmi: ${report.isSecret ? 'Ha' : 'Yo\'q'}\n`;
@@ -169,7 +170,7 @@ bot.command('clear', (ctx) => {
   // Clear all reports
   clearReports();
   
-  return ctx.reply('Barcha xabarlarni tozalandi.');
+  return ctx.reply('Barcha xabarlar tozalandi.');
 });
 
 // Admin /send command handler
@@ -391,6 +392,7 @@ bot.on('contact', async (ctx) => {
   if (userState && userState.step === USER_STEPS.ENTERING_CONTACT) {
     // Store contact from the shared contact
     userState.contact = ctx.message.contact.phone_number;
+    userState.username = ctx.from?.username || null;
     userState.step = USER_STEPS.ENTERING_MESSAGE;
     userStates.set(userId, userState);
     
@@ -430,7 +432,8 @@ Chat ID: ${userId}
       message: userState.message,
       isSecret: isSecret,
       timestamp: new Date().toISOString(),
-      user_id: userId
+      user_id: userId,
+      username: ctx.from?.username || null
     };
     saveReport(report);
     
