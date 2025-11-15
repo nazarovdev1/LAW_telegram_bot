@@ -1,5 +1,5 @@
 services:
-  - type: worker
+  - type: web
     name: telegram-bot
     env: node
     buildCommand: npm install
@@ -11,3 +11,6 @@ services:
         sync: false
       - key: NODE_ENV
         value: production
+      - key: RENDER_EXTERNAL_URL
+        sync: false
+    healthCheckPath: /health

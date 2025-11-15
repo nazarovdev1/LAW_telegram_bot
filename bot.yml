@@ -3,11 +3,11 @@
 
 name: Run Telegram Bot (DEPRECATED)
 
-on:
-  push:
-  workflow_dispatch:
-  schedule:
-    - cron: "*/5 * * * *"  # Har 5 daqiqada ishga tushadi
+# on:
+#   push:
+#   workflow_dispatch:
+#   schedule:
+#     - cron: "*/5 * * * *"  # Har 5 daqiqada ishga tushadi
 
 jobs:
   build:
