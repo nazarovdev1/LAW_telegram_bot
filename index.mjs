@@ -23,7 +23,7 @@ if (!process.env.BOT_TOKEN || !process.env.ADMIN_CHAT_ID) {
 
 // Create Express app
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 10000;
 
 // Middleware
 app.use(express.json());
@@ -536,61 +536,30 @@ const clearReports = () => {
   }
 };
 
-// Set webhook for production
-if (process.env.NODE_ENV === 'production') {
-  const webhookUrl = `${process.env.RENDER_EXTERNAL_URL}/telegraf/${process.env.BOT_TOKEN}`;
+// Set webhook
+const domain = process.env.RENDER_EXTERNAL_URL;
+
+if (domain) {
+  const webhookUrl = `${domain}/telegraf/${process.env.BOT_TOKEN}`;
   bot.telegram.setWebhook(webhookUrl).then(() => {
     console.log('Webhook set to:', webhookUrl);
   }).catch(err => {
     console.error('Failed to set webhook:', err);
   });
-
-  app.use(bot.webhookCallback(`/telegraf/${process.env.BOT_TOKEN}`));
+} else {
+  console.warn('⚠️ WARNING: RENDER_EXTERNAL_URL is not defined.');
+  console.warn('Webhook was NOT set. The bot will not receive updates via webhook.');
+  console.warn('If you are on Render.com, this variable is usually set automatically or you should set it in Environment Variables.');
 }
 
+// Set up webhook callback for Express
+app.use(bot.webhookCallback(`/telegraf/${process.env.BOT_TOKEN}`));
+
+// Start server
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
-
-// Launch bot (polling for development, webhook for production)
-if (process.env.NODE_ENV !== 'production') {
-  bot.launch({
-    dropPendingUpdates: true,
-    allowedUpdates: []
-  }).then(() => {
-    console.log('Anonymous reporting bot is running (polling mode)');
-  }).catch((err) => {
-    console.error('Failed to launch bot:', err);
-    if (err.description && err.description.includes('Conflict')) {
-      console.warn('Conflict detected: Another bot instance may be running. Retrying in 5 minutes...');
-      setTimeout(() => {
-        bot.launch({ dropPendingUpdates: true });
-      }, 300000); // Retry after 5 min
-    }
-  });
-} else {
-  console.log('Bot is running in webhook mode');
-}
-
-// Enable graceful stop
-const gracefulShutdown = (signal) => {
-  console.log(`${signal} received. Shutting down gracefully...`);
-  // For webhook mode, delete webhook and close server
-  if (process.env.NODE_ENV === 'production') {
-    bot.telegram.deleteWebhook().then(() => {
-      console.log('Webhook deleted');
-    });
-  }
-  // Stop bot
-  bot.stop(signal).then(() => {
-    process.exit(0);
-  });
-};
-
-process.once('SIGINT', () => gracefulShutdown('SIGINT'));
-process.once('SIGTERM', () => gracefulShutdown('SIGTERM'));
-process.once('SIGBREAK', () => gracefulShutdown('SIGBREAK'));
 
 // Handle unexpected errors
 process.on('unhandledRejection', (reason, promise) => {
@@ -599,5 +568,4 @@ process.on('unhandledRejection', (reason, promise) => {
 
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
-  gracefulShutdown('UNCAUGHT_EXCEPTION');
 });
